@@ -1,0 +1,43 @@
+version: '3'
+services:
+  db:
+    image: postgres:11.4-alpine
+    ports:
+      - 54321:5432
+    container_name: postgres
+    volumes:
+       - ./pg_data:/var/lib/postgresql/data/pgdata
+    environment:
+      POSTGRES_PASSWORD:
+      POSTGRES_DB: bet
+      PGDATA: /var/lib/postgresql/data/pgdata
+    restart: always
+  bet:
+    build: ./backend
+    command: ./docker_prepare.sh && ./dev.sh
+    ports:
+      - 8100:8000
+    environment:
+      POSTGRES_HOST: db
+    restart: always
+    links:
+      - db
+      - line-provider
+  line-provider:
+    build: ./line-provider
+    command: ./docker_prepare.sh && ./dev.sh
+    ports:
+      - 8101:8001
+    environment:
+      POSTGRES_HOST: db
+    restart: always
+  nginx:
+    image: nginx:1.23.0-alpine
+    container_name: nginx
+    volumes:
+      - ./event.conf:/etc/nginx/conf.d/event.conf
+    links:
+      - line-provider
+      - bet
+    ports:
+      - 8111:8002
